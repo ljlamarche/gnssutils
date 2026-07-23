@@ -77,7 +77,6 @@ def find_date_index(startdates, enddates, targdate):
 def prn2norad(prn, date):
     # map PRN to NORAD SAT ID
 
-    print(prn, date)
     date = date.replace(tzinfo=dt.timezone.utc)
     
     identifier_table, prn_table = retrieve_prn_mapping_info()
