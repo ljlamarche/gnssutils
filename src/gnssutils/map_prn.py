@@ -32,11 +32,15 @@ def time_convert(time_string):
 
     return date
 
-def retrieve_prn_mapping_info():
+def retrieve_prn_mapping_info(metadata_file=None):
 
-    r = requests.get('https://files.igs.org/pub/station/general/igs_satellite_metadata.snx')
-    r.encoding = 'utf-8'
-    filetext = r.text
+    if metadata_file:
+        with open(metadata_file, 'r', encoding='utf-8') as f:
+            filetext = f.read()
+    else:
+        r = requests.get('https://files.igs.org/pub/station/general/igs_satellite_metadata.snx')
+        r.encoding = 'utf-8'
+        filetext = r.text
 
     # Extract SATELLITE/IDENTIFIER table
     sidx = filetext.find('+SATELLITE/IDENTIFIER')
@@ -45,7 +49,7 @@ def retrieve_prn_mapping_info():
     block = '\n'.join([l[:39] for l in filetext[sidx:eidx].splitlines()[1:]])
     # Convert to pandas dataframe
     identifier_table = pd.read_table(io.StringIO(block), 
-                                     sep='\s+', comment='*',
+                                     sep=r'\s+', comment='*',
                                      names=['SVN','COSPAR','NORAD','Block'])
 
     # Extract SATELLITE/PRN table
@@ -55,7 +59,7 @@ def retrieve_prn_mapping_info():
     block = '\n'.join([l[:40] for l in filetext[sidx:eidx].splitlines()[1:]])
     # Convert to pandas dataframe
     prn_table = pd.read_table(io.StringIO(block), 
-                              sep='\s+', comment='*',
+                              sep=r'\s+', comment='*',
                               names=['SVN','Start','End','PRN'],
                               converters={'Start':time_convert, 'End':time_convert})
 
@@ -74,12 +78,12 @@ def find_date_index(startdates, enddates, targdate):
     return tidx
 
 
-def prn2norad(prn, date):
+def prn2norad(prn, date, metadata_file=None):
     # map PRN to NORAD SAT ID
 
     date = date.replace(tzinfo=dt.timezone.utc)
     
-    identifier_table, prn_table = retrieve_prn_mapping_info()
+    identifier_table, prn_table = retrieve_prn_mapping_info(metadata_file=metadata_file)
 
     #pd.set_option('display.max_columns', None)
 
@@ -94,7 +98,8 @@ def prn2norad(prn, date):
     
         return norad
 
-    except IndexError:
+    except IndexError as e:
+        print(e)
         warnings.warn(f'No PRN {prn} available for {date}!')
         return None
 
@@ -117,5 +122,5 @@ def prn2svn(prn, date):
 
 if __name__=='__main__':
 
-    print(prn2norad(18, dt.date(2019,3,21)))
-    print(prn2svn(18, dt.date(2019,3,21)))
+    print(prn2norad('G18', dt.datetime(2019,2,1), metadata_file='igs_satellite_metadata.snx'))
+    #print(prn2svn(18, dt.datetime(2016,2,1)))
