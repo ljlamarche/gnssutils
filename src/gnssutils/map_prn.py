@@ -12,7 +12,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import io
-
+import warnings
 import requests
 
 
@@ -81,13 +81,23 @@ def prn2norad(prn, date):
     
     identifier_table, prn_table = retrieve_prn_mapping_info()
 
+    #pd.set_option('display.max_columns', None)
 
     subtable = prn_table.loc[prn_table['PRN']==prn]
-    svn = subtable.loc[(subtable['Start']<=date) & (subtable['End']>date), 'SVN'].iat[0]
+    #print(subtable)
+    #svn = subtable.loc[(subtable['Start']<=date) & (subtable['End']>date), 'SVN']
+    #print(svn)
+    try:
+        svn = subtable.loc[(subtable['Start']<=date) & (subtable['End']>date), 'SVN'].iat[0]
 
-    norad = identifier_table.loc[identifier_table['SVN']==svn, 'NORAD'].iat[0]
+        norad = identifier_table.loc[identifier_table['SVN']==svn, 'NORAD'].iat[0]
+    
+        return norad
 
-    return norad
+    except IndexError:
+        warnings.warn(f'No PRN {prn} available for {date}!')
+        return None
+
 
 #    idx = find_date_index(mapping_dict[prn]['STARTTIME'], mapping_dict[prn]['ENDTIME'], date)
 #    return mapping_dict[prn]['NORADID'][idx]
